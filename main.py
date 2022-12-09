@@ -25,7 +25,7 @@ app = FastAPI()
 
 
 def get_feed_path(request: str) -> Path:
-    return feeds_dir / Path(''.join((c if c.isalnum() else '-') for c in request))
+    return feeds_dir / Path(''.join((c if c.isalnum() else '-') for c in request) + '.xml')
 
 
 def update_cache(request: str, feed_path: Path) -> None:

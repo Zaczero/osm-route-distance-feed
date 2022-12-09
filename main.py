@@ -72,7 +72,7 @@ def update_cache(feed_path: Path, request: str, threshold: int) -> None:
 
         distance_last = 1
 
-    pubdate_format = 'EEE, dd LLL yyyy hh:mm:ss'
+    pubdate_format = 'EEE, dd LLL yyyy HH:mm:ss'
     pubdate = format_datetime(now, pubdate_format, locale='en') + ' GMT'
     feed['rss']['channel']['pubDate'] = pubdate
     feed['rss']['channel']['ttl'] = str(int(cache_seconds))

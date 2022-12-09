@@ -5,14 +5,13 @@ from time import time
 import requests as requests
 import xmltodict
 from babel.dates import format_datetime
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse
 
 work_dir = Path(os.getenv('WORK_DIR', '.'))
 cache_seconds = float(os.getenv('CACHE_HOURS', '2')) * 3600
 rss_max_size = int(os.getenv('RSS_MAX_SIZE', '30'))
 route_url = os.getenv('ROUTE_URL', 'https://routing.openstreetmap.de')
-route_change_threshold = float(os.getenv('ROUTE_CHANGE_THRESHOLD', '100'))
 
 assert cache_seconds >= 0, 'Error: Cache duration must be non-negative'
 assert work_dir.exists(), f'Error: {work_dir} does not exist'
@@ -24,11 +23,11 @@ feeds_dir.mkdir(exist_ok=True)
 app = FastAPI()
 
 
-def get_feed_path(request: str) -> Path:
-    return feeds_dir / Path(''.join((c if c.isalnum() else '-') for c in request) + '.xml')
+def get_feed_path(request: str, threshold: int) -> Path:
+    return feeds_dir / Path(''.join((c if c.isalnum() else '-') for c in request) + f'.{threshold}.xml')
 
 
-def update_cache(request: str, feed_path: Path) -> None:
+def update_cache(feed_path: Path, request: str, threshold: int) -> None:
     now = time()
 
     if feed_path.exists():
@@ -63,7 +62,10 @@ def update_cache(request: str, feed_path: Path) -> None:
                     'description': 'This RSS feed checks for distance changes on a given route on OpenStreetMap '
                                    'and provides updates when changes are detected.',
                     'link': request_url,
-                    'item': []
+                    'item': [],
+
+                    # -- custom --
+                    'threshold': threshold
                 }
             }
         }
@@ -78,7 +80,7 @@ def update_cache(request: str, feed_path: Path) -> None:
     distance_now = float(data['routes'][0]['distance'])
     distance_change = distance_now - distance_last
 
-    if abs(distance_change) >= route_change_threshold or not feed['rss']['channel']['item']:
+    if abs(distance_change) >= threshold or not feed['rss']['channel']['item']:
         distance_change_perc = distance_change / distance_last
         distance_now_km = distance_now / 1000
         distance_last_km = distance_last / 1000
@@ -100,10 +102,10 @@ def update_cache(request: str, feed_path: Path) -> None:
 
 
 @app.get('/rss/{request:path}')
-def rss(request: str):
+def rss(request: str, threshold: int = Query(100, ge=0)):
     request = request.strip('/')
-    feed_path = get_feed_path(request)
+    feed_path = get_feed_path(request, threshold)
 
-    update_cache(request, feed_path)
+    update_cache(feed_path, request, threshold)
 
     return FileResponse(feed_path, media_type='application/rss+xml')

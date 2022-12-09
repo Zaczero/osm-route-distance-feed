@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.10.8-slim
 
 ENV PYTHONUNBUFFERED=1
 
@@ -25,6 +25,7 @@ COPY --chown=1000:1000 LICENSE *.py ./
 RUN python -m compileall .
 
 EXPOSE 8000
+VOLUME ["/app/feeds"]
 
-ENTRYPOINT ["uvicorn", "main:app"]
+ENTRYPOINT ["pipenv", "run", "uvicorn", "main:app"]
 CMD ["--host", "0.0.0.0"]

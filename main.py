@@ -118,4 +118,4 @@ def rss(request: str, threshold: int = Query(50, ge=0), name: str = Query("")):
 
     update_cache(feed_path, request, threshold, name)
 
-    return FileResponse(feed_path, media_type='application/rss+xml')
+    return FileResponse(feed_path, media_type='application/rss+xml; charset=utf-8')

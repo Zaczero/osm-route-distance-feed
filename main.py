@@ -23,11 +23,18 @@ feeds_dir.mkdir(exist_ok=True)
 app = FastAPI()
 
 
-def get_feed_path(request: str, threshold: int) -> Path:
-    return feeds_dir / Path(''.join((c if c.isalnum() else '-') for c in request) + f'.{threshold}.xml')
+def escape_text(text: str) -> str:
+    return ''.join((c if c.isalnum() else '-') for c in text)
 
 
-def update_cache(feed_path: Path, request: str, threshold: int) -> None:
+def get_feed_path(request: str, threshold: int, name: str) -> Path:
+    if name:
+        return feeds_dir / Path(f'{escape_text(request)}.{escape_text(name)}.{threshold}.xml')
+    else:
+        return feeds_dir / Path(f'{escape_text(request)}.{threshold}.xml')
+
+
+def update_cache(feed_path: Path, request: str, threshold: int, name: str) -> None:
     now = time()
 
     if feed_path.exists():
@@ -59,13 +66,13 @@ def update_cache(feed_path: Path, request: str, threshold: int) -> None:
                 '@version': '2.0',
                 'channel': {
                     'title': 'osm-route-distance-feed',
-                    'description': 'This RSS feed checks for distance changes on a given route on OpenStreetMap '
-                                   'and provides updates when changes are detected.',
+                    'description': 'This RSS feed notifies of distance changes on a given OpenStreetMap route.',
                     'link': request_url,
                     'item': [],
 
                     # -- custom --
-                    'threshold': threshold
+                    'threshold': threshold,
+                    'name': name
                 }
             }
         }
@@ -87,7 +94,10 @@ def update_cache(feed_path: Path, request: str, threshold: int) -> None:
 
         feed['rss']['channel']['item'] = [{
             'title': f'Distance changed by {distance_change_perc:+.3%}',
-            'description': f'Previously: {distance_last_km:.2F} km., Currently: {distance_now_km:.2F} km.',
+            'description':
+                f'The route "{name}" distance was changed from {distance_last_km:.2F} km. to {distance_now_km:.2F} km.'
+                if name else
+                f'The route distance was changed from {distance_last_km:.2F} km. to {distance_now_km:.2F} km.',
             'link': request_url,
             'pubDate': pubdate,
 
@@ -102,10 +112,10 @@ def update_cache(feed_path: Path, request: str, threshold: int) -> None:
 
 
 @app.get('/rss/{request:path}')
-def rss(request: str, threshold: int = Query(100, ge=0)):
+def rss(request: str, threshold: int = Query(50, ge=0), name: str = Query("")):
     request = request.strip('/')
-    feed_path = get_feed_path(request, threshold)
+    feed_path = get_feed_path(request, threshold, name)
 
-    update_cache(feed_path, request, threshold)
+    update_cache(feed_path, request, threshold, name)
 
     return FileResponse(feed_path, media_type='application/rss+xml')

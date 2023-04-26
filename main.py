@@ -50,6 +50,13 @@ def update_cache(feed_path: Path, request: str, threshold: int, name: str) -> No
     response.raise_for_status()
     data = response.json()
 
+    start_0 = data['waypoints'][0]['location'][0]
+    start_1 = data['waypoints'][0]['location'][1]
+    end_0 = data['waypoints'][-1]['location'][0]
+    end_1 = data['waypoints'][-1]['location'][1]
+
+    friendly_nav_link = f'https://routing.openstreetmap.de/?loc={start_1},{start_0}&loc={end_1},{end_0}&srv=0'
+
     if feed_path.exists():
         with open(feed_path) as f:
             feed_xml = f.read()
@@ -67,7 +74,7 @@ def update_cache(feed_path: Path, request: str, threshold: int, name: str) -> No
                 'channel': {
                     'title': 'osm-route-distance-feed',
                     'description': 'This RSS feed notifies of distance changes on a given OpenStreetMap route.',
-                    'link': request_url,
+                    'link': friendly_nav_link,
                     'item': [],
 
                     # -- custom --
@@ -98,7 +105,7 @@ def update_cache(feed_path: Path, request: str, threshold: int, name: str) -> No
                 f'The route "{name}" distance was changed from {distance_last_km:.2F} km. to {distance_now_km:.2F} km.'
                 if name else
                 f'The route distance was changed from {distance_last_km:.2F} km. to {distance_now_km:.2F} km.',
-            'link': request_url,
+            'link': friendly_nav_link,
             'pubDate': pubdate,
 
             # -- custom --

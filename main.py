@@ -36,17 +36,13 @@ def get_feed_path(request: str, threshold: int, name: str) -> Path:
 
 def update_cache(feed_path: Path, request: str, threshold: int, name: str) -> None:
     now = time()
-
-    if feed_path.exists():
-        age = now - feed_path.stat().st_mtime
-    else:
-        age = cache_seconds
+    age = now - feed_path.stat().st_mtime if feed_path.exists() else cache_seconds
 
     if age < cache_seconds:
         return
 
     request_url = f'{route_url}/{request}'
-    response = requests.get(request_url)
+    response = requests.get(request_url, timeout=30)
     response.raise_for_status()
     data = response.json()
 
@@ -58,9 +54,7 @@ def update_cache(feed_path: Path, request: str, threshold: int, name: str) -> No
     friendly_nav_link = f'https://routing.openstreetmap.de/?loc={start_1},{start_0}&loc={end_1},{end_0}&srv=0'
 
     if feed_path.exists():
-        with open(feed_path) as f:
-            feed_xml = f.read()
-
+        feed_xml = feed_path.read_text()
         feed = xmltodict.parse(feed_xml)
 
         if not isinstance(feed['rss']['channel']['item'], list):
@@ -76,11 +70,10 @@ def update_cache(feed_path: Path, request: str, threshold: int, name: str) -> No
                     'description': 'This RSS feed notifies of distance changes on a given OpenStreetMap route.',
                     'link': friendly_nav_link,
                     'item': [],
-
                     # -- custom --
                     'threshold': threshold,
-                    'name': name
-                }
+                    'name': name,
+                },
             }
         }
 
@@ -99,27 +92,25 @@ def update_cache(feed_path: Path, request: str, threshold: int, name: str) -> No
         distance_now_km = distance_now / 1000
         distance_last_km = distance_last / 1000
 
-        feed['rss']['channel']['item'] = [{
-            'title': f'Distance changed by {distance_change_perc:+.3%}',
-            'description':
-                f'The route "{name}" distance was changed from {distance_last_km:.2F} km. to {distance_now_km:.2F} km.'
-                if name else
-                f'The route distance was changed from {distance_last_km:.2F} km. to {distance_now_km:.2F} km.',
-            'link': friendly_nav_link,
-            'pubDate': pubdate,
-
-            # -- custom --
-            'distance': data['routes'][0]['distance']
-        }] + feed['rss']['channel']['item'][:rss_max_size - 1]
+        feed['rss']['channel']['item'] = [
+            {
+                'title': f'Distance changed by {distance_change_perc:+.3%}',
+                'description': f'The route "{name}" distance was changed from {distance_last_km:.2F} km. to {distance_now_km:.2F} km.'
+                if name
+                else f'The route distance was changed from {distance_last_km:.2F} km. to {distance_now_km:.2F} km.',
+                'link': friendly_nav_link,
+                'pubDate': pubdate,
+                # -- custom --
+                'distance': data['routes'][0]['distance'],
+            }
+        ] + feed['rss']['channel']['item'][: rss_max_size - 1]
 
     feed_xml = xmltodict.unparse(feed)
-
-    with open(feed_path, 'w') as f:
-        f.write(feed_xml)
+    feed_path.write_text(feed_xml)
 
 
 @app.get('/rss/{request:path}')
-def rss(request: str, threshold: int = Query(50, ge=0), name: str = Query("")):
+def rss(request: str, threshold: int = Query(50, ge=0), name: str = Query('')):
     request = request.strip('/')
     feed_path = get_feed_path(request, threshold, name)
 

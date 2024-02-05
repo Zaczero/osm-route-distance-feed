@@ -6,11 +6,11 @@ version = "0.0.0"
 
 [tool.poetry.dependencies]
 babel = "^2.14.0"
-fastapi = "^0.109.0"
+fastapi = "<1"
 python = "^3.12"
 requests = "^2.31.0"
-uvicorn = {extras = ["standard"], version = "^0.25.0"}
-xmltodict = "^0.13.0"
+uvicorn = {extras = ["standard"], version = "<1"}
+xmltodict = "<1"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"

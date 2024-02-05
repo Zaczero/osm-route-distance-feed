@@ -21,13 +21,12 @@ let
     # Scripts
     # -- Misc
     (writeShellScriptBin "docker-build-push" ''
+      if command -v podman &> /dev/null; then docker() { podman "$@"; } fi
       docker push $(docker load < $(nix-build --no-out-link) | sed -En 's/Loaded image: (\S+)/\1/p')
     '')
   ];
 
-  shell' = with pkgs; ''
-    export PROJECT_DIR="$(pwd)"
-  '' + lib.optionalString isDevelopment ''
+  shell' = with pkgs; lib.optionalString isDevelopment ''
     [ ! -e .venv/bin/python ] && [ -h .venv/bin/python ] && rm -r .venv
 
     echo "Installing Python dependencies"

@@ -1,20 +1,14 @@
-[tool.poetry]
-authors = ["Your Name <you@example.com>"]
-description = ""
+[project]
 name = "osm-route-distance-feed"
 version = "0.0.0"
-
-[tool.poetry.dependencies]
-babel = "^2.14.0"
-fastapi = "<1"
-python = "^3.12"
-requests = "^2.31.0"
-uvicorn = {extras = ["standard"], version = "<1"}
-xmltodict = "<1"
-
-[build-system]
-build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core"]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "babel>=2.14,<3",
+  "fastapi<1",
+  "requests>=2.31,<3",
+  "uvicorn[standard]<1",
+  "xmltodict<1",
+]
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
@@ -48,48 +42,48 @@ target-version = "py312"
 
 [tool.ruff.lint]
 ignore = [
-  "S101", # assert
+  "S101",  # assert
 ]
 select = [
   # see https://docs.astral.sh/ruff/rules/ for rules documentation
-  "A", # flake8-builtins
-  "ARG", # flake8-unused-arguments
-  "ASYNC", # flake8-async
-  "B", # flake8-bugbear
+  "A",  # flake8-builtins
+  "ARG",  # flake8-unused-arguments
+  "ASYNC",  # flake8-async
+  "B",  # flake8-bugbear
   # "COM", # flake8-commas
-  "C4", # flake8-comprehensions
-  "E4", # pycodestyle
+  "C4",  # flake8-comprehensions
+  "E4",  # pycodestyle
   "E7",
   "E9",
-  "F", # pyflakes
+  "F",  # pyflakes
   # "FBT", # flake8-boolean-trap
-  "FLY", # flynt
+  "FLY",  # flynt
   # "FURB", # refurb (preview)
-  "G", # flake8-logging-format
-  "I", # isort
-  "INT", # flake8-gettext
+  "G",  # flake8-logging-format
+  "I",  # isort
+  "INT",  # flake8-gettext
   # "LOG", # flake8-logging (preview)
-  "N", # pep8-naming
-  "NPY", # numpy
-  "UP", # pyupgrade
-  "Q", # flake8-quotes
-  "PERF", # perflint
-  "PGH", # pygrep-hooks
-  "PIE", # flake8-pie
+  "N",  # pep8-naming
+  "NPY",  # numpy
+  "UP",  # pyupgrade
+  "Q",  # flake8-quotes
+  "PERF",  # perflint
+  "PGH",  # pygrep-hooks
+  "PIE",  # flake8-pie
   # "PL", # pylint
-  "PT", # flake8-pytest-style
-  "PTH", # flake8-use-pathlib
-  "PYI", # flake8-pyi
-  "RSE", # flake8-raise
-  "RUF", # ruff
-  "S", # flake8-bandit
-  "SIM", # flake8-simplify
-  "SLF", # flake8-self
-  "SLOT", # flake8-slots
-  "T10", # flake8-debugger
+  "PT",  # flake8-pytest-style
+  "PTH",  # flake8-use-pathlib
+  "PYI",  # flake8-pyi
+  "RSE",  # flake8-raise
+  "RUF",  # ruff
+  "S",  # flake8-bandit
+  "SIM",  # flake8-simplify
+  "SLF",  # flake8-self
+  "SLOT",  # flake8-slots
+  "T10",  # flake8-debugger
   # "T20", # flake8-print
   # "TRY", # tryceratops
-  "YTT", # flake8-2020
+  "YTT",  # flake8-2020
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -98,18 +92,6 @@ unfixable = []
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
-[tool.ruff.format]
-quote-style = "single"
-
-# Like Black, indent with spaces, rather than tabs.
-indent-style = "space"
-
-# Like Black, respect magic trailing commas.
-skip-magic-trailing-comma = false
-
-# Like Black, automatically detect the appropriate line ending.
-line-ending = "lf"
 
 [tool.ruff.lint.flake8-builtins]
 builtins-ignorelist = ["id", "open", "type"]
@@ -127,3 +109,18 @@ extend-ignore-names = ["ET"]
 
 [tool.ruff.lint.pylint]
 max-args = 10
+
+[tool.ruff.format]
+quote-style = "single"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "lf"
+
+[tool.uv]
+package = false

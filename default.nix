@@ -1,50 +1,47 @@
-{ pkgs ? import <nixpkgs> { }, ... }:
-
+{
+  pkgs ? import <nixpkgs> { },
+}:
 let
-  shell = import ./shell.nix {
-    isDevelopment = false;
-  };
-
-  python-venv = pkgs.buildEnv {
-    name = "python-venv";
-    paths = [
-      (pkgs.runCommand "python-venv" { } ''
-        mkdir -p $out/lib
-        cp -r "${./.venv/lib/python3.12/site-packages}"/* $out/lib
-      '')
-    ];
-  };
-in
-with pkgs; dockerTools.buildLayeredImage {
-  name = "docker.monicz.dev/osm-route-distance-feed";
-  tag = "latest";
-  maxLayers = 10;
-
-  contents = shell.buildInputs ++ [ python-venv ];
-
-  extraCommands = ''
-    set -e
-    mkdir app && cd app
-    cp "${./.}"/*.py .
-    export PATH="${lib.makeBinPath shell.buildInputs}:$PATH"
-    ${shell.shellHook}
+  shell = import ./shell.nix { inherit pkgs; };
+  inherit (shell) python;
+  pythonPackages = pkgs.runCommand "route-distance-python-packages" { } ''
+    mkdir -p "$out/lib"
+    cp -a ${./.venv/lib/python3.12/site-packages}/. "$out/lib"
+    chmod -R u+w "$out"
+    find "$out" -type d -name __pycache__ -prune -exec rm -rf {} +
   '';
-
+in
+pkgs.dockerTools.streamLayeredImage {
+  name = "ghcr.io/zaczero/osm-route-distance-feed";
+  tag = "latest";
+  contents = shell.buildInputs ++ [
+    pkgs.dockerTools.caCertificates
+    pythonPackages
+  ];
+  extraCommands = ''
+    mkdir -m 1777 tmp
+    mkdir -p app/feeds
+    cp ${./main.py} app/main.py
+  '';
   config = {
+    Labels."org.opencontainers.image.source" = "https://github.com/Zaczero/osm-route-distance-feed";
     WorkingDir = "/app";
     Env = [
-      "LD_LIBRARY_PATH=${lib.makeLibraryPath shell.buildInputs}"
-      "PYTHONPATH=${python-venv}/lib"
+      "PYTHONPATH=${pythonPackages}/lib"
       "PYTHONUNBUFFERED=1"
       "PYTHONDONTWRITEBYTECODE=1"
     ];
-    ExposedPorts = {
-      "8000/tcp" = { };
-    };
-    Volumes = {
-      "/app/feeds" = { };
-    };
-    Entrypoint = [ "python" "-m" "uvicorn" "main:app" ];
-    Cmd = [ "--host" "0.0.0.0" ];
+    Entrypoint = [
+      "${python}/bin/python3.12"
+      "-m"
+      "uvicorn"
+      "main:app"
+    ];
+    Cmd = [
+      "--host"
+      "0.0.0.0"
+    ];
+    ExposedPorts."8000/tcp" = { };
+    Volumes."/app/feeds" = { };
   };
 }

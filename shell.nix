@@ -2,12 +2,8 @@
   pkgs ? import <nixpkgs> { },
 }:
 pkgs.mkShell {
-  buildInputs = [
-    pkgs.python312
-  ];
+  packages = [ pkgs.bun ];
   shellHook = ''
-    uv sync --frozen --python ${pkgs.python312}/bin/python3.12 || exit "$?"
-    source .venv/bin/activate
+    bun install --frozen-lockfile
   '';
-  passthru.python = pkgs.python312;
 }

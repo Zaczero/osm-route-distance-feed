@@ -22,34 +22,14 @@ export class RouteFeed extends DurableObject<Env> {
   // All feeds share the routing provider's one-request-per-second budget.
   private pending: Promise<unknown> = Promise.resolve();
 
-  async read(request: FeedRequest): Promise<Response> {
+  async read(request: FeedRequest): Promise<Feed> {
     let feed = await this.ctx.storage.get<Feed>(JSON.stringify(request));
     if (!feed || Date.now() - feed.checkedAt >= refreshInterval) {
       const refresh = this.pending.then(() => this.refresh(request));
       this.pending = refresh.catch(() => {});
       feed = await refresh;
     }
-    const now = Date.now();
-    const maxAge = Math.max(
-      0,
-      Math.floor((feed.checkedAt + refreshInterval - now) / 1000),
-    );
-    const body = renderFeed(feed, request);
-    const digest = await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(body),
-    );
-    const etag = `W/"${btoa(String.fromCharCode(...new Uint8Array(digest)))}"`;
-    return new Response(body, {
-      headers: {
-        "Content-Type": "application/rss+xml; charset=utf-8",
-        "Cache-Control": `public, max-age=${maxAge}, must-revalidate`,
-        Date: new Date(now).toUTCString(),
-        ETag: etag,
-        "Last-Modified": feed.items[0].pubDate,
-        "X-Content-Type-Options": "nosniff",
-      },
-    });
+    return feed;
   }
 
   private async refresh(request: FeedRequest): Promise<Feed> {
@@ -117,9 +97,30 @@ export default {
         status: 405,
         headers: { Allow: "GET" },
       });
-    const feed = parseRequest(url);
-    if (!feed)
+    const query = parseRequest(url);
+    if (!query)
       return new Response("Invalid route or threshold", { status: 422 });
-    return env.FEEDS.getByName("feeds").read(feed);
+    using feed = await env.FEEDS.getByName("feeds").read(query);
+    const now = Date.now();
+    const maxAge = Math.max(
+      0,
+      Math.floor((feed.checkedAt + refreshInterval - now) / 1000),
+    );
+    const body = renderFeed(feed, query);
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(body),
+    );
+    const etag = `W/"${btoa(String.fromCharCode(...new Uint8Array(digest)))}"`;
+    return new Response(body, {
+      headers: {
+        "Content-Type": "application/rss+xml; charset=utf-8",
+        "Cache-Control": `public, max-age=${maxAge}, must-revalidate`,
+        Date: new Date(now).toUTCString(),
+        ETag: etag,
+        "Last-Modified": feed.items[0].pubDate,
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
   },
 };

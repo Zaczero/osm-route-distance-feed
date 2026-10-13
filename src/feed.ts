@@ -52,7 +52,7 @@ export function updateFeed(
   const items = previous?.items ?? [];
   const last = items[0]?.distance;
   const delta = last === undefined ? undefined : distance - last;
-  const next = { checkedAt: now, link, items };
+  const next = { checkedAt: now, link: previous?.link ?? link, items };
   if (
     delta !== undefined &&
     (delta === 0 || Math.abs(delta) < request.threshold)
@@ -70,6 +70,7 @@ export function updateFeed(
         : `Distance changed by ${sign}${((delta! / last) * 100).toFixed(3)}%`;
   return {
     ...next,
+    link,
     items: [
       {
         title,
@@ -105,7 +106,7 @@ export function renderFeed(feed: Feed, request: FeedRequest): string {
           link: feed.link,
           threshold: request.threshold,
           name: request.name,
-          pubDate: new Date(feed.checkedAt).toUTCString(),
+          pubDate: feed.items[0].pubDate,
           ttl: refreshInterval / 60_000,
           item: feed.items,
         },

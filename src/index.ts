@@ -34,11 +34,19 @@ export class RouteFeed extends DurableObject<Env> {
       0,
       Math.floor((feed.checkedAt + refreshInterval - now) / 1000),
     );
-    return new Response(renderFeed(feed, request), {
+    const body = renderFeed(feed, request);
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(body),
+    );
+    const etag = `W/"${btoa(String.fromCharCode(...new Uint8Array(digest)))}"`;
+    return new Response(body, {
       headers: {
         "Content-Type": "application/rss+xml; charset=utf-8",
         "Cache-Control": `public, max-age=${maxAge}, must-revalidate`,
         Date: new Date(now).toUTCString(),
+        ETag: etag,
+        "Last-Modified": feed.items[0].pubDate,
         "X-Content-Type-Options": "nosniff",
       },
     });

@@ -14,6 +14,8 @@ the initial distance. Each feed retains its latest 30 entries.
 
 Feeds refresh when a reader requests them, at most once every two hours.
 Failed refreshes leave the existing history intact so readers can retry.
+Readers can use `ETag` or `Last-Modified` to check for updates without downloading
+an unchanged feed again; unchanged responses return HTTP 304.
 
 Routing is provided by [FOSSGIS's OSRM service](https://routing.openstreetmap.de/),
 using data from [OpenStreetMap contributors](https://www.openstreetmap.org/copyright).

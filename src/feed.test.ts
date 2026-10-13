@@ -29,6 +29,18 @@ test("compares cumulative changes to the last published distance", () => {
   expect(above.items[0].title).toBe("Distance changed by +6.000%");
 });
 
+test("a check without a published change preserves the RSS representation", () => {
+  const first = updateFeed(undefined, request, 1000, "https://example.org/", 0);
+  const rechecked = updateFeed(
+    first,
+    request,
+    1030,
+    "https://example.org/?snapped=1",
+    1000,
+  );
+  expect(renderFeed(rechecked, request)).toBe(renderFeed(first, request));
+});
+
 test("zero distance and zero threshold do not divide by zero or duplicate unchanged entries", () => {
   const zero = { ...request, threshold: 0 };
   const first = updateFeed(undefined, zero, 0, "https://example.org/", 0);

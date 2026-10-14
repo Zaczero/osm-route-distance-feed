@@ -10,6 +10,7 @@ import {
 
 interface Env {
   FEEDS: DurableObjectNamespace<RouteFeed>;
+  REQUESTS: RateLimit;
 }
 
 interface RouteResponse {
@@ -89,6 +90,12 @@ export class RouteFeed extends DurableObject<Env> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const key = request.headers.get("CF-Connecting-IP") ?? "unknown";
+    if (!(await env.REQUESTS.limit({ key })).success)
+      return new Response("Too many requests", {
+        status: 429,
+        headers: { "Retry-After": "60", "Cache-Control": "no-store" },
+      });
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/rss/"))
       return new Response("Not found", { status: 404 });

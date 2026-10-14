@@ -15,14 +15,14 @@ export default defineConfig(({ mode }) => {
       entrypoint,
       cache: { enabled: true },
       domains: WORKER_DOMAIN ? [WORKER_DOMAIN] : undefined,
-      observability: {
-        enabled: true,
-        logs: { enabled: true, invocationLogs: false },
-      },
       exports: {
         RouteFeed: workerExports.durableObject({ storage: "sqlite" }),
       },
       env: {
+        REQUESTS: bindings.rateLimit({
+          namespace: "101",
+          simple: { limit: 1000, period: 60 },
+        }),
         FEEDS: bindings.durableObject({
           worker: "osm-route-distance-feed",
           exportName: "RouteFeed",

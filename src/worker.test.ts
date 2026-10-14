@@ -42,6 +42,7 @@ afterEach(async () => {
 function runtime(
   handler: (request: WorkerRequest) => WorkerResponse | Promise<WorkerResponse>,
   resourcePersistencePath?: string,
+  requestLimit = 1000,
 ) {
   const options: MiniflareOptions = {
     resourcePersistencePath,
@@ -60,6 +61,11 @@ function runtime(
           },
           exports: { RouteFeed: { type: "durable-object", storage: "sqlite" } },
           env: {
+            REQUESTS: {
+              type: "rate-limit",
+              namespace: "101",
+              simple: { limit: requestLimit, period: 60 },
+            },
             FEEDS: {
               type: "durable-object",
               worker: "feed",
@@ -83,6 +89,17 @@ function response(distance: number) {
     waypoints: [{ location: [13, 52] }, { location: [14, 53] }],
   });
 }
+
+test("the native request limit returns an uncached retryable response", async () => {
+  const mf = runtime(() => response(12345), undefined, 2);
+  const base = await mf.ready;
+  expect((await fetch(new URL("/missing", base))).status).toBe(404);
+  expect((await fetch(new URL("/missing", base))).status).toBe(404);
+  const limited = await fetch(new URL("/missing", base));
+  expect(limited.status).toBe(429);
+  expect(limited.headers.get("Cache-Control")).toBe("no-store");
+  expect(limited.headers.get("Retry-After")).toBe("60");
+});
 
 test("concurrent requests publish once and reuse cached history", async () => {
   let calls = 0;
